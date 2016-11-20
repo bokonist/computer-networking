@@ -17,11 +17,7 @@ int main()
 	memset(&client,0,sizeof(client)); //set the values to 0
 
 	sock_desc=socket(AF_INET,SOCK_STREAM,0);//get an endpoint for communication. AF_INET is for ipv4. SOCK_STREAM is for TCP (2-way comms). 0 is the protocol
-	if(sock_desc==-1)
-	{
-		printf("Error in socket creation");
-		exit(1);
-	}
+	if(sock_desc==-1) { printf("Error in socket creation"); exit(1); }
 
 	client.sin_family=AF_INET; //ipv4
 	client.sin_addr.s_addr=INADDR_ANY;
@@ -29,20 +25,33 @@ int main()
 		When you use this value as the address when calling bind(), 
 		the socket accepts connections to all the IPs of the machine. */
 	client.sin_port=3001;//setting port number
+	
 	k=connect(sock_desc,(struct sockaddr*)&client,sizeof(client)); //initiate connection on a socket
-	if(k==-1)
+	if(k==-1) { printf("Error in connecting to server"); exit(1); }
+
+	while(1)
 	{
-		printf("Error in connecting to server");
-		exit(1);
-	}
-	printf("\n\nEnter data to be send :\t");
-	gets(buf);
-	/* ssize_t send(int sockfd, const void *buf, size_t len, int flags) */
-	k=send(sock_desc,buf,100,0);
-	if(k==-1)
-	{
-		printf("Error in sending");
-		exit(1);
+		printf("Client [me] :");
+		fgets(buf,100,stdin);
+		if(strncmp(buf,"end",3)==0)
+		{
+			k=send(sock_desc,buf,100,0);
+			if(k==-1) { printf("Error in sending terminate signal"); exit(1); }
+			else { printf("You ended the chat successfully\n"); } 
+			break;
+		}
+		/* ssize_t send(int sockfd, const void *buf, size_t len, int flags) */
+		k=send(sock_desc,buf,100,0);
+		if(k==-1) { printf("Error in sending");	exit(1); }
+
+		k= recv(sock_desc,buf,100,0);
+		//if(k==-1){ printf("Error in receiving");exit(1); }
+		if(strncmp(buf,"end",3)==0)
+		{
+			printf("Server has ended the chat\n");
+			break;
+		}
+		printf("Server :%s",buf);
 	}
 	close(sock_desc); //close the file descriptor
 	exit(0);
