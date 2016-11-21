@@ -78,26 +78,27 @@ int main()
         if(atoi(a) != prevAck+1 ) // if it is out of sequence from the previous ack, we know that an ack was lost/not sent
         {
             printf("Acknowledgment lost in transmission. Going back to previous acknowledged frame\n");
-            currentFrame=prevAck+1; //go back to the previously acknowledged frame
+            currentFrame=prevAck+1; //go back to the next frame of previously acknowledged frame
             displayWindow(prevAck,frames);
             if(currentFrame<=frames) // retransmit a frame from that point
             {
                 sprintf(b,"%d",currentFrame);
-                k=send(sockfd,a,sizeof(a),0); //send the frame number as the message
+                k=send(sockfd,b,sizeof(b),0); //send the frame number as the message
                 die(k,"Error in sending frame");
-                printf("Sent frame #%d\n",currentFrame++);
+                printf("Sent frame #%d\n",currentFrame);
             }
             displayWindow(prevAck,frames);
-            printf("waiting for ack of frame#%d\n",currentFrame-1);
-            a="0";
-            while(atoi(a)!=currentFrame-1) //discard the future useless acks till the one we retransmitted has been acknowledged
+            printf("waiting for ack of frame#%d\n",currentFrame);
+            strcpy(b,"0");
+            k=recv(sockfd,b,sizeof(b),0); //receive an ack
+            do
             {
-                 k=recv(sockfd,a,sizeof(a),0); //receive an ack
-                printf("discarding ack of frame #%s\n",a);
+                printf("discarding ack of frame #%s\n",b);
                 die(k,"Error in receiving ack");
-            }
-
-            prevAck=currentFrame-1; //update prevAck
+                k=recv(sockfd,b,sizeof(b),0); //receive next ack
+            }while(atoi(b)!=currentFrame); //discard the future useless acks till the one we retransmitted has been acknowledged
+            prevAck=currentFrame; //update prevAck
+            currentFrame++;
             displayWindow(prevAck,frames);
             for(i=0; i< WINDOW_SIZE && currentFrame<=frames; i++,currentFrame++) //send a whole window after recovery from ack loss
             {
@@ -122,6 +123,10 @@ int main()
             }
         }
     }
+    strcpy(a,"0");
+    k=send(sockfd,a,sizeof(a),0); //send 0 as frame number to signify end of transmission
+    die(k,"Error in sending frame");
+    printf("Finished transmission\n");
     close(sockfd);
     return 0;
 }

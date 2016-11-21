@@ -58,6 +58,10 @@ int main()
     {
         k=recv(sockfd,a,sizeof(a),0); //get packet
         die(k,"Error in receiving");
+
+        if(atoi(a)==0) //end of transmission
+            break;
+
         printf("Send acknowledgement for frame %s? (y/n) ",a);
         scanf("%c", &choice);
         if(choice == 'y')
@@ -68,6 +72,7 @@ int main()
         }
         scanf("%c", &choice); //discard the \n in getchar(). unix bug
     }
+    printf("End of transmission\n");
     close(sockfd);
     close(passive_sockfd);
     return 0;
