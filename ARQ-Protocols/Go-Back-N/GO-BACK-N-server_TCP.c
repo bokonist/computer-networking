@@ -38,14 +38,17 @@ int main()
     server.sin_port=htons(6501);
     server.sin_addr.s_addr=inet_addr("127.0.0.1");
 
-    k=bind(passive_sockfd,(struct sockaddr *) &server, sizeof(server)); //set up local server to get frames
+    socklen_t len;
+    len=sizeof(server);
+
+    k=bind(passive_sockfd,(struct sockaddr *) &server, len); //set up local server to get frames
     die(k,"Error in binding");
 
     k=listen(passive_sockfd,20);
     die(k,"Error in listening");
+    
 
-
-    sockfd=accept(passive_sockfd,(struct sockaddr *)&server, (socklen_t*)sizeof(server));
+    sockfd=accept(passive_sockfd,(struct sockaddr *)&server, &len);
     die(sockfd,"Error in accepting connection");
 
     printf("\nTCP Connection Established.\n");

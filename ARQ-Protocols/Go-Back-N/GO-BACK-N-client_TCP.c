@@ -71,7 +71,7 @@ int main()
 
     while(lastAcknowledgedFrame<frames) //wait till the last frame is acknowledged
     {
-         k=recv(sockfd,a,sizeof(a),0); //receive an ack
+        k=recv(sockfd,a,sizeof(a),0); //receive an ack
         die(k,"Error in receiving ack");
 
         printf("Recieved ack for frame #%s\n",a);
@@ -89,6 +89,7 @@ int main()
             }
             displayWindow(prevAck,frames);
             printf("waiting for ack of frame#%d\n",currentFrame-1);
+            a="0";
             while(atoi(a)!=currentFrame-1) //discard the future useless acks till the one we retransmitted has been acknowledged
             {
                  k=recv(sockfd,a,sizeof(a),0); //receive an ack
