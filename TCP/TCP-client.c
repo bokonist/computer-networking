@@ -8,6 +8,14 @@
 #include <string.h>
 #include <stdlib.h>
 
+void die(int val, const char* message)
+{
+    if(val==-1)
+    {
+        printf("%s\n",message);
+        exit(1);
+    }
+}
 int main()
 {
 	char buf[100];
@@ -17,7 +25,7 @@ int main()
 	memset(&client,0,sizeof(client)); //set the values to 0
 
 	sock_desc=socket(AF_INET,SOCK_STREAM,0);//get an endpoint for communication. AF_INET is for ipv4. SOCK_STREAM is for TCP (2-way comms). 0 is the protocol
-	if(sock_desc==-1) { printf("Error in socket creation"); exit(1); }
+	die(sock_desc,"Error in socket creation");
 
 	client.sin_family=AF_INET; //ipv4
 	client.sin_addr.s_addr=INADDR_ANY;
@@ -27,7 +35,7 @@ int main()
 	client.sin_port=3001;//setting port number
 	
 	k=connect(sock_desc,(struct sockaddr*)&client,sizeof(client)); //initiate connection on a socket
-	if(k==-1) { printf("Error in connecting to server"); exit(1); }
+	die(k,"Error in connecting to server");
 
 	while(1)
 	{
@@ -36,16 +44,16 @@ int main()
 		if(strncmp(buf,"end",3)==0)
 		{
 			k=send(sock_desc,buf,100,0);
-			if(k==-1) { printf("Error in sending terminate signal"); exit(1); }
-			else { printf("You ended the chat successfully\n"); } 
+			die(k,"Error in sending terminate signal");
+			printf("You ended the chat successfully\n");
 			break;
 		}
 		/* ssize_t send(int sockfd, const void *buf, size_t len, int flags) */
 		k=send(sock_desc,buf,100,0);
-		if(k==-1) { printf("Error in sending");	exit(1); }
+		die(k,"Error in sending");
 
 		k= recv(sock_desc,buf,100,0);
-		//if(k==-1){ printf("Error in receiving");exit(1); }
+		die(k,"Error in receiving");
 		if(strncmp(buf,"end",3)==0)
 		{
 			printf("Server has ended the chat\n");
