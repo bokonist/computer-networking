@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <unistd.h>
+
 #define WINDOW_SIZE 5
 
 char a[10];
@@ -42,64 +43,69 @@ int main()
     int sockfd,localsockfd,frames,wl,c=1,x,j,n,p=0,e=0, timeout=5,k;
     struct sockaddr_in server ,localserver;
 
-    sockfd=socket(AF_INET,SOCK_DGRAM,0); //udp connection socket
+    sockfd=socket(AF_INET,SOCK_STREAM,0); //tcp connection socket
     die(sockfd,"Error in socket creation");
 
-    localsockfd=socket(AF_INET,SOCK_DGRAM,0); //udp connection socket
-    die(localsockfd,"Error in socket creation");
 
-    //set server settings in address struct
+    //server settings
     server.sin_family=AF_INET;
-    server.sin_addr.s_addr=inet_addr("127.0.0.1");
-    server.sin_port=htons(6500);
+    server.sin_addr.s_addr=INADDR_ANY;
+    server.sin_port=htons(6501);
 
-    //set local server settings in address struct
-    localserver.sin_family=AF_INET;
-    localserver.sin_addr.s_addr=inet_addr("127.0.0.1");
-    localserver.sin_port=htons(6501);
+    k=connect(sockfd,(struct sockaddr*)&server,sizeof(server)); //initiate connection on a socket
+    die(k,"Error in connecting to server");
 
-    k=bind(localsockfd,(struct sockaddr *) &localserver, sizeof(localserver)); //set up local server
-    die(k,"Error in binding");
-
-    k=connect(sockfd,(struct sockaddr *) &server, sizeof(server)); //connect to destination
-    die(k,"Error in connect()");
-
-    printf("\nUDP Connection Established and local server is running.\n");
+    printf("\nTCP Connection Established.\n");
     printf("\nEnter the number of Frames: ");
     scanf("%d",&frames);
+    sprintf(a,"%d",frames);
+    k=send(sockfd,a,sizeof(a),0);//send the number of packets to be sent
+    die(k,"Error in sending number of packets");
 
     int currentFrame=1, lastAcknowledgedFrame=0, i=0, prevAck=0;
+    int choice;
     displayWindow(prevAck,frames);
 
     for(i=0; i< WINDOW_SIZE && currentFrame<=frames; i++,currentFrame++) //one window is sent, starting with currentFrame
     {
         sprintf(a,"%d",currentFrame);
-        k=send(sockfd,a,sizeof(a),0); //send the frame number as the message
-        die(k,"Error in sending frame");
-        printf("Sent frame #%d\n",currentFrame);
+        printf("Send frame #%s? (1/0) ",a);
+        scanf("%d",&choice);
+        if(choice==1)
+        {
+            k=send(sockfd,a,sizeof(a),0);//send the frame number as the message
+            die(k,"Error in sending frame");
+            printf("Sent frame #%d\n",currentFrame);
+        }
+        //scanf("%d",&choice); //discard \n. unix bug
     }
-
-    while(lastAcknowledgedFrame<frames) //wait till the last frame is acknowledged
+    while(atoi(a)!=0) //wait till end of transmission signal
     {
-        k=recv(localsockfd,a,sizeof(a),0); //receive an ack
+        k=recv(sockfd,a,sizeof(a),0); //receive an ack
         die(k,"Error in receiving ack");
-
-		printf("Recieved ack for frame #%s\n",a);
-        lastAcknowledgedFrame= atoi(a); //update lastAcknowledgedFrame
-        displayWindow(lastAcknowledgedFrame,frames);
-        if(currentFrame<=frames) //slide the window forward. send another frame if any left.
+        if(atoi(a)<0) //negative ack received
+        {
+            printf("Negative ack received. Retransmitting from frame #%d\n", (0-atoi(a)));
+            currentFrame=(0-atoi(a));
+        }
+        for(i=0; i< WINDOW_SIZE && currentFrame<=frames; i++,currentFrame++) // transmit the next window
         {
             sprintf(a,"%d",currentFrame);
-            k=send(sockfd,a,sizeof(a),0); //send the frame number as the message
-            die(k,"Error in sending frame");
-            printf("Sent frame #%d\n",currentFrame++);
+            printf("Send frame #%s? (1/0) ",a);
+            scanf("%d",&choice);
+            if(choice==1)
+            {
+                k=send(sockfd,a,sizeof(a),0);//send the frame number as the message
+                die(k,"Error in sending frame");
+                printf("Sent frame #%d\n",currentFrame);
+            }
+            //scanf("%d",&choice); //discard \n. unix bug
         }
-
     }
-    sprintf(a,"%d",0); //send a 0 to signify end of transmission
-    k=send(sockfd,a,sizeof(a),0);
+    strcpy(a,"0");
+    k=send(sockfd,a,sizeof(a),0); //send 0 as frame number to signify end of transmission
     die(k,"Error in sending frame");
-    close(localsockfd);
+    printf("Finished transmission\n");
     close(sockfd);
     return 0;
 }
